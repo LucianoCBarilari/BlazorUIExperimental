@@ -1,6 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using MudBlazor.Utilities
+@inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="MyCustomTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -8,23 +9,54 @@
 <MudLayout>
     <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        My Application
+        <MudText Align="Align.Start"> My Application</MudText>
+        <MudSpacer />
+        <MudSwitch @bind-Value="_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" Label="Toggle Light/Dark Mode" />
     </MudAppBar>
     <MudDrawer @bind-Open="@_drawerOpen">
         <MyNavMenu/>
     </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Medium">
+    <MudMainContent Style="padding-top: 100px;">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    bool _drawerOpen = true;
+    private MudTheme _theme = new();
+    private bool _isDarkMode;
+    private bool _drawerOpen = true;
 
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
+
+    MudTheme MyCustomTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = new MudColor("#2563EB"),       // Blue 600
+            Secondary = new MudColor("#F59E0B"),     // Amber 500
+            Tertiary = new MudColor("#10B981"),      // Emerald 500
+            Background = new MudColor("#F8FAFC"),    // Slate 50
+            Surface = new MudColor("#FFFFFF"),
+            AppbarBackground = new MudColor("#1E293B"), // Slate 800
+            DrawerBackground = new MudColor("#FFFFFF"),
+            TextPrimary = new MudColor("#0F172A"),   // Slate 900
+            TextSecondary = new MudColor("#475569"), // Slate 600
+            ActionDefault = new MudColor("#64748B"), // Slate 500
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = new MudColor("#60A5FA")        // Blue 400
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DrawerWidthLeft = "260px",
+            DrawerWidthRight = "300px"
+        }
+    };
+    
 }
