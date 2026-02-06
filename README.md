@@ -12,10 +12,10 @@ Experimental Blazor UI project for C# labs.
 ```powershell
 # From the project directory
 # Restore
- dotnet restore
+dotnet restore
 
 # Run
- dotnet run
+dotnet run
 ```
 
 ## Notes
