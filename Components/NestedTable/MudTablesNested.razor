@@ -1,5 +1,169 @@
-﻿<h3>MudTablesNested</h3>
+﻿
+@page "/nestedmudtable"
+@using System.Linq
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h5">Composite Selection Demo</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">Parent selection propagates to children. Parent state is derived.</MudText>
+
+        <MudSimpleTable Dense="true" Hover="true" Class="nested-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">
+                        <MudCheckBox Dense="true" @bind-Value="@AllSelected" />
+                    </th>
+                    <th>Organismo</th>
+                    <th>Mnemonic</th>
+                    <th>Valid From</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var org in Organismos)
+                {
+                    <tr>
+                        <td>
+                            <MudIconButton Size="Size.Small"
+                                           Icon="@((ExpandedOrganismos.Contains(org.OrganismoID)) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                           OnClick="@( () => ToggleExpand(org.OrganismoID) )" />
+                        </td>
+                        <td>
+                            <MudCheckBox T="bool"  Dense="true"
+                                         @bind-Value="@org.IsSelected" />
+                            <span class="ml-2">@org.Nombre</span>
+                        </td>
+                        <td>@org.Mnemonico</td>
+                        <td>@org.FDesde.ToShortDateString()</td>
+                    </tr>
+                    @if (ExpandedOrganismos.Contains(org.OrganismoID))
+                    {
+                        <tr class="child-row">
+                            <td colspan="4">
+                                <MudSimpleTable Dense="true" Class="nested-child-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;"></th>
+                                            <th>Escalafon</th>
+                                            <th>Mnemonic</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var child in org.Children)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <MudCheckBox T="bool" Dense="true"
+                                                                 @bind-Value="@child.IsSelected" />
+                                                </td>
+                                                <td>@child.Nombre</td>
+                                                <td>@child.Mnemonico</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2">Selected Escalafon IDs</MudText>
+        <MudText Typo="Typo.body2">@SelectedIdsText</MudText>
+
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2">Selected Assignments (OrganismoID, EscalafonID)</MudText>
+        <MudText Typo="Typo.body2">@SelectedAssignmentsText</MudText>
+    </MudPaper>
+</MudContainer>
 
 @code {
+    // See README.md for the full design notes and selection rules.
 
+    private List<OrganismoT> Organismos = new();
+    private HashSet<long> ExpandedOrganismos = new();
+
+    protected override void OnInitialized()
+    {
+        Organismos = CompositeFactory.BuildTree();
+        foreach (var org in Organismos)
+        {
+            ExpandedOrganismos.Add(org.OrganismoID);
+        }
+    }
+
+    private bool AllSelected
+    {
+        get => Organismos.Count > 0 && Organismos.All(o => o.IsSelected);
+        set
+        {
+            if (value)
+            {
+                foreach (var org in Organismos)
+                {
+                    org.Select();
+                }
+            }
+            else
+            {
+                foreach (var org in Organismos)
+                {
+                    org.Deselect();
+                }
+            }
+        }
+    }
+
+
+    private string SelectedIdsText
+        => string.Join(", ",
+            Organismos
+                .SelectMany(o => o.GetSelectedIds())
+                .Distinct()
+                .OrderBy(id => id));
+
+    private string SelectedAssignmentsText
+        => string.Join(", ",
+            GetSelectedAssignments()
+                .Select(a => $"({a.OrganismoID}, {a.EscalafonID})"));
+
+    private IReadOnlyList<Assignment> GetSelectedAssignments()
+    {
+        var result = new List<Assignment>();
+
+        foreach (var org in Organismos)
+        {
+            foreach (var child in org.Children.Where(c => c.IsSelected))
+            {
+                result.Add(new Assignment(org.OrganismoID, child.EscalafonID));
+            }
+        }
+
+        return result;
+    }
+
+    private sealed record Assignment(long OrganismoID, long EscalafonID);
+
+    private void ToggleExpand(long organismoId)
+    {
+        if (!ExpandedOrganismos.Add(organismoId))
+        {
+            ExpandedOrganismos.Remove(organismoId);
+        }
+    }
 }
+
+<style>
+    .nested-table tbody tr.child-row > td {
+        padding: 0;
+        border-bottom: none;
+    }
+
+    .nested-child-table {
+        margin: 8px 0 12px 48px;
+        border-left: 2px solid var(--mud-palette-divider);
+        padding-left: 12px;
+        background: rgba(0, 0, 0, 0.02);
+    }
+</style>
